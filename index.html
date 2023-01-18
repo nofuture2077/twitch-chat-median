@@ -32,7 +32,7 @@
 
         // Verbinde zum Twitch-Chat
         client.connect();
-        document.getElementById("chatOutput").innerHTML = 'Connected'
+        document.getElementById("chatOutput").innerHTML = channelName + ' Connected'
 
         // Verarbeite eingehende Chatnachrichten
         client.on("message", function (channel, userstate, message, self) {
@@ -60,12 +60,12 @@
 <body>
 <div>
     <h1>Twitch Chat Median calculator</h1>
-    <b>Usage: </b>Any Mod or Broadcaster can start the vote with !startmedian in Twitch Chat. To end the vote and see the results use !endmedian</br>
+    <b>Usage: </b>Any Mod or Broadcaster can start the vote with !startmedian in Twitch Chat. To end the vote and see the results use !endmedian</br></br></br>
 </div>
 <div>
     <label for="channelNameInput">Channelname:</label>
     <input type="text" id="channelNameInput" name="channelNameInput">
-    <button onclick="connectToChannel()">Verbinden</button>
+    <button onclick="connectToChannel()">Connect</button>
 </div>
 
 <div id="chatOutput"></div>
