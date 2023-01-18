@@ -16,11 +16,16 @@
 		return ( values[lowMiddle] + values[highMiddle]) / 2;
     }
     function connectToChannel() {
+        if (client) {
+            client.disconnect();
+        }
     	valid_inputs = []
-		valid_regex = /^[1-9]\d{1,2}$/
+		valid_regex = /^\d+$/
 		stopped = true
 
         var channelName = document.getElementById("channelNameInput").value;
+        var min = document.getElementById("channelMinInput").value;
+        var max = document.getElementById("channelMaxInput").value;
         client = new tmi.client({
             connection: {
                 secure: true,
@@ -45,7 +50,7 @@
 	    	}
 	    	if (stopped) return;
             if (self) return;
-            valid_message = valid_regex.test(message)
+            valid_message = valid_regex.test(message) && (parseInt(message) >= min) && (parseInt(message) <= max)
             if (valid_message) {
             	valid_inputs.push(parseInt(message))
             }
@@ -61,6 +66,11 @@
     </br></br></br>
 </div>
 <div>
+    <label for="channelMinInput">Min:</label>
+    <input type="number" id="channelMinInput" name="channelMinInput" value="10">
+    <label for="channelMaxInput">Max:</label>
+    <input type="number" id="channelMaxInput" name="channelMaxInput" value="999">
+    <br/><br/>
     <label for="channelNameInput">Channelname:</label>
     <input type="text" id="channelNameInput" name="channelNameInput">
     <button onclick="connectToChannel()">Connect</button>
