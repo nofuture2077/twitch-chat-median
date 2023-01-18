@@ -4,7 +4,6 @@
 <script src="https://github.com/tmijs/tmi.js/releases/download/v1.8.5/tmi.min.js"></script>
 <script>
     var client;
-    // Initialisiere den Twitch-Client
 
     function median(values) {
 		values.sort(function(a,b) {
@@ -30,11 +29,9 @@
             channels: [channelName]
         });
 
-        // Verbinde zum Twitch-Chat
         client.connect();
         document.getElementById("chatOutput").innerHTML = channelName + ' Connected'
 
-        // Verarbeite eingehende Chatnachrichten
         client.on("message", function (channel, userstate, message, self) {
         	if (message === '!startmedian' && (userstate.mod || userstate.badges.broadcaster)) {
 	    		document.getElementById("chatOutput").innerHTML = '';
@@ -60,7 +57,8 @@
 <body>
 <div>
     <h1>Twitch Chat Median calculator</h1>
-    <b>Usage: </b>Any Mod or Broadcaster can start the vote with !startmedian in Twitch Chat. To end the vote and see the results use !endmedian</br></br></br>
+    <b>Usage: </b>Any Mod or Broadcaster can start the vote with !startmedian in Twitch Chat. To end the vote and see the results use !endmedian <a href="https://github.com/nofuture2077/twitch-chat-median">Source available at Github</a>. License: <a href="https://creativecommons.org/licenses/by/4.0/">CC-BY-4.0</a>
+    </br></br></br>
 </div>
 <div>
     <label for="channelNameInput">Channelname:</label>
@@ -69,6 +67,5 @@
 </div>
 
 <div id="chatOutput"></div>
-
 </body>
 </html>
