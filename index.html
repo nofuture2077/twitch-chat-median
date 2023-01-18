@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="https://github.com/tmijs/tmi.js/releases/download/v1.8.5/tmi.min.js"></script>
+<script>
+    var client;
+    // Initialisiere den Twitch-Client
+
+    function median(values) {
+		values.sort(function(a,b) {
+		 return a - b;
+		});
+
+
+		let lowMiddle = Math.floor( (values.length - 1) / 2);
+		let highMiddle = Math.ceil( (values.length - 1) / 2);
+		return ( values[lowMiddle] + values[highMiddle]) / 2;
+    }
+    function connectToChannel() {
+    	valid_inputs = []
+		valid_regex = /^[1-9]\d{1,2}$/
+		stopped = true
+
+        var channelName = document.getElementById("channelNameInput").value;
+        client = new tmi.client({
+            connection: {
+                secure: true,
+                reconnect: true
+            },
+            channels: [channelName]
+        });
+
+        // Verbinde zum Twitch-Chat
+        client.connect();
+        document.getElementById("chatOutput").innerHTML = 'Connected'
+
+        // Verarbeite eingehende Chatnachrichten
+        client.on("message", function (channel, userstate, message, self) {
+        	if (message === '!startmedian' && (userstate.mod || userstate.badges.broadcaster)) {
+	    		document.getElementById("chatOutput").innerHTML = '';
+	    		valid_inputs = [];
+	    		stopped = false;
+	    	}
+	    	if (message === '!endmedian' && (userstate.mod || userstate.badges.broadcaster)) {
+	    		stopped = true;
+
+	    		document.getElementById("chatOutput").innerHTML += "<br><br><br><b>Median: " + median(valid_inputs) + "</b>"
+	    	}
+	    	if (stopped) return;
+            if (self) return;
+            valid_message = valid_regex.test(message)
+            if (valid_message) {
+            	valid_inputs.push(parseInt(message))
+            }
+            document.getElementById("chatOutput").innerHTML += "<span style='color: " + (valid_message ? "green" : "red") + ";'>"+ userstate["display-name"] + ": " + message + "</span><br>";
+        });
+    }
+</script>
+</head>
+<body>
+
+<div>
+    <label for="channelNameInput">Channelname:</label>
+    <input type="text" id="channelNameInput" name="channelNameInput">
+    <button onclick="connectToChannel()">Verbinden</button>
+</div>
+
+<div id="chatOutput"></div>
+
+</body>
+</html>
