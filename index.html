@@ -5,7 +5,7 @@
 <script>
     var client;
 
-    function median(values) {
+    function calcMedian(values) {
         values.sort(function(a,b) {
          return a - b;
         });
@@ -25,16 +25,27 @@
         counter = 0
 
         var channelName = document.getElementById("channelNameInput").value;
+        var botInput = document.getElementById("botInput").value;
         var min = document.getElementById("channelMinInput").value;
         var max = document.getElementById("channelMaxInput").value;
         var uniqueResult = document.getElementById("UniqueResultInput").checked;
-        client = new tmi.client({
+        var config = {
             connection: {
                 secure: true,
                 reconnect: true
             },
             channels: [channelName]
-        });
+        };
+
+        if (botInput) {
+            var parts = botInput.split("#");
+            config.indentity = {
+                username: parts[0],
+                password: parts[1]
+            };
+        }
+
+        client = new tmi.client(config);
 
         client.connect();
         document.getElementById("chatOutput").innerHTML = channelName + ' Connected'
@@ -48,8 +59,12 @@
             }
             if (message === '!endmedian' && (userstate.mod || userstate.badges.broadcaster)) {
                 stopped = true;
-
-                document.getElementById("chatOutput").innerHTML += "<br><br><br><b>Median: " + median(Object.values(valid_inputs)) + "</b>"
+                validVotes = Object.values(valid_inputs);
+                median = Math.ceil(calcMedian(validVotes));
+                document.getElementById("chatOutput").innerHTML += "<br><br><br><b>Median: " + median + "</b>"
+                if (botInput) {
+                    client.say(channel, `${validVotes.length} votes cast. Median is: ${median}`);
+                }
             }
             if (stopped) return;
             if (self) return;
@@ -57,7 +72,6 @@
             if (valid_message) {
                 counter++
                 valid_inputs[uniqueResult ? userstate["display-name"] : counter] = parseInt(message)
-                console.log(uniqueResult, valid_inputs);
             }
             document.getElementById("chatOutput").innerHTML += "<span style='color: " + (valid_message ? "green" : "red") + ";'>"+ userstate["display-name"] + ": " + message + "</span><br>";
         });
@@ -67,7 +81,8 @@
 <body>
 <div>
     <h1>Twitch Chat Median calculator</h1>
-    <b>Usage: </b>Any Mod or Broadcaster can start the vote with !startmedian in Twitch Chat. To end the vote and see the results use !endmedian <a href="https://github.com/nofuture2077/twitch-chat-median">Source available at Github</a>. License: <a href="https://creativecommons.org/licenses/by/4.0/">CC-BY-4.0</a>
+    <b>Usage: </b>Any Mod or Broadcaster can start the vote with !startmedian in Twitch Chat. To end the vote and see the results use !endmedian. If you want a bot to write results back into a channel provide credentials in the form of "username#oauthtoken" for an account has access to the channel. I use the scambot2000 account for my testing.
+<a href="https://github.com/nofuture2077/twitch-chat-median">Source available at Github</a>. License: <a href="https://creativecommons.org/licenses/by/4.0/">CC-BY-4.0</a>
     </br></br></br>
 </div>
 <div>
@@ -78,6 +93,9 @@
     <input type="number" id="channelMinInput" name="channelMinInput" value="10">
     <label for="channelMaxInput">Max:</label>
     <input type="number" id="channelMaxInput" name="channelMaxInput" value="999">
+    <br/><br/>
+    <label for="botInput">BotCredentials (Optional):</label><br/>
+    <input type="text" id="botInput" name="botInput">
     <br/><br/>
     <label for="channelNameInput">Channelname:</label>
     <input type="text" id="channelNameInput" name="channelNameInput">
