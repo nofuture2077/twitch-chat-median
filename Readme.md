@@ -1,4 +1,4 @@
-## Twitch Chat Median calculator
+# Twitch Chat Median calculator
 
 Usage: 
 
