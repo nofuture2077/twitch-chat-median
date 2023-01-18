@@ -19,13 +19,15 @@
         if (client) {
             client.disconnect();
         }
-        valid_inputs = []
+        valid_inputs = {}
         valid_regex = /^\d+$/
         stopped = true
+        counter = 0
 
         var channelName = document.getElementById("channelNameInput").value;
         var min = document.getElementById("channelMinInput").value;
         var max = document.getElementById("channelMaxInput").value;
+        var uniqueResult = document.getElementById("UniqueResultInput").checked;
         client = new tmi.client({
             connection: {
                 secure: true,
@@ -40,19 +42,22 @@
         client.on("message", function (channel, userstate, message, self) {
             if (message === '!startmedian' && (userstate.mod || userstate.badges.broadcaster)) {
                 document.getElementById("chatOutput").innerHTML = '';
-                valid_inputs = [];
+                valid_inputs = {};
                 stopped = false;
+                counter = 0;
             }
             if (message === '!endmedian' && (userstate.mod || userstate.badges.broadcaster)) {
                 stopped = true;
 
-                document.getElementById("chatOutput").innerHTML += "<br><br><br><b>Median: " + median(valid_inputs) + "</b>"
+                document.getElementById("chatOutput").innerHTML += "<br><br><br><b>Median: " + median(Object.values(valid_inputs)) + "</b>"
             }
             if (stopped) return;
             if (self) return;
             valid_message = valid_regex.test(message) && (parseInt(message) >= min) && (parseInt(message) <= max)
             if (valid_message) {
-                valid_inputs.push(parseInt(message))
+                counter++
+                valid_inputs[uniqueResult ? userstate["display-name"] : counter] = parseInt(message)
+                console.log(uniqueResult, valid_inputs);
             }
             document.getElementById("chatOutput").innerHTML += "<span style='color: " + (valid_message ? "green" : "red") + ";'>"+ userstate["display-name"] + ": " + message + "</span><br>";
         });
@@ -66,6 +71,9 @@
     </br></br></br>
 </div>
 <div>
+    <label for="UniqueResultInput">Unique value per User (last)</label>
+    <input type="checkbox" id="UniqueResultInput" name="UniqueResultInput" checked="checked">  
+    <br/><br/>
     <label for="channelMinInput">Min:</label>
     <input type="number" id="channelMinInput" name="channelMinInput" value="10">
     <label for="channelMaxInput">Max:</label>
