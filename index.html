@@ -1,82 +1,98 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<script src="https://github.com/tmijs/tmi.js/releases/download/v1.8.5/tmi.min.js"></script>
-<script>
-    var client;
+    <title>ScamMedian 2000</title>
+    <meta charset="UTF-8">
+    <script src="lib/twitch.js"></script>
 
-    function calcMedian(values) {
-        values.sort(function(a,b) {
-         return a - b;
-        });
-
-
-        let lowMiddle = Math.floor( (values.length - 1) / 2);
-        let highMiddle = Math.ceil( (values.length - 1) / 2);
-        return ( values[lowMiddle] + values[highMiddle]) / 2;
-    }
-    function connectToChannel() {
-        if (client) {
-            client.disconnect();
+    <script>
+        const { Chat } = window.TwitchJs;
+        let clientId = 'itiucpl208iwqzl4pfg4hrtcp8l70k';
+        var client;
+    
+        function calcMedian(values) {
+            values.sort(function(a,b) {
+             return a - b;
+            });
+    
+    
+            let lowMiddle = Math.floor( (values.length - 1) / 2);
+            let highMiddle = Math.ceil( (values.length - 1) / 2);
+            return ( values[lowMiddle] + values[highMiddle]) / 2;
         }
-        valid_inputs = {}
-        valid_regex = /^\d+$/
-        stopped = true
-        counter = 0
+        function connectToChannel() {
+            if (client) {
+                client.disconnect();
+            }
+            valid_inputs = {}
+            valid_regex = /^\d+$/
+            stopped = true
+            counter = 0
+    
+            var channelName = document.getElementById("channelNameInput").value;
+            var botInput = document.getElementById("botInput").value;
+            var min = document.getElementById("channelMinInput").value;
+            var max = document.getElementById("channelMaxInput").value;
+            var uniqueResult = document.getElementById("UniqueResultInput").checked;
 
-        var channelName = document.getElementById("channelNameInput").value;
-        var botInput = document.getElementById("botInput").value;
-        var min = document.getElementById("channelMinInput").value;
-        var max = document.getElementById("channelMaxInput").value;
-        var uniqueResult = document.getElementById("UniqueResultInput").checked;
-        var config = {
-            connection: {
-                secure: true,
-                reconnect: true
-            },
-            channels: [channelName]
-        };
-
-        if (botInput) {
-            var parts = botInput.split("#");
-            config.indentity = {
-                username: parts[0],
-                password: parts[1]
+            var config = {
+                clientId
             };
+    
+            if (botInput) {
+                var parts = botInput.split("#");
+
+                config.username = parts[0];
+                config.token = parts[1];
+            }
+    
+            client = new Chat(config);
+
+            const run = async () => {
+                client.on("*", (message) => {
+                    const time = new Date(message.timestamp).toTimeString();
+                    const event = message.event || message.command;
+                    const channel = message.channel;
+                    let msg = message.message || "";
+
+                    if (!message.tags.username || !msg) {
+                        return;
+                    }
+                    
+                    if (msg === '!startmedian' && (message.tags.mod || message.tags.badges.broadcaster)) {
+                        document.getElementById("chatOutput").innerHTML = '';
+                        valid_inputs = {};
+                        stopped = false;
+                        counter = 0;
+                    }
+                    if (msg === '!endmedian' && (message.tags.mod || message.tags.badges.broadcaster)) {
+                        stopped = true;
+                        validVotes = Object.values(valid_inputs);
+                        median = Math.ceil(calcMedian(validVotes));
+                        document.getElementById("chatOutput").innerHTML += "<br><br><br><b>Median: " + median + "</b>"
+                        if (botInput) {
+                            client.say(channel, `${validVotes.length} votes cast. Median is: ${median}`);
+                        }
+                    }
+
+                    if (stopped) return;
+                    valid_message = valid_regex.test(msg) && (parseInt(msg) >= min) && (parseInt(msg) <= max)
+                    if (valid_message) {
+                        counter++
+                        valid_inputs[uniqueResult ? message.tags.username : counter] = parseInt(msg)
+                    }
+                    document.getElementById("chatOutput").innerHTML += "<span style='color: " + (valid_message ? "green" : "red") + ";'>"+ message.tags.username + ": " + msg + "</span><br>";
+                });
+
+                await client.connect();
+                await client.join(channelName);
+
+                document.getElementById("chatOutput").innerHTML = channelName + ' Connected'
+            };
+
+            run();
         }
-
-        client = new tmi.client(config);
-
-        client.connect();
-        document.getElementById("chatOutput").innerHTML = channelName + ' Connected'
-
-        client.on("message", function (channel, userstate, message, self) {
-            if (message === '!startmedian' && (userstate.mod || userstate.badges.broadcaster)) {
-                document.getElementById("chatOutput").innerHTML = '';
-                valid_inputs = {};
-                stopped = false;
-                counter = 0;
-            }
-            if (message === '!endmedian' && (userstate.mod || userstate.badges.broadcaster)) {
-                stopped = true;
-                validVotes = Object.values(valid_inputs);
-                median = Math.ceil(calcMedian(validVotes));
-                document.getElementById("chatOutput").innerHTML += "<br><br><br><b>Median: " + median + "</b>"
-                if (botInput) {
-                    client.say(channel, `${validVotes.length} votes cast. Median is: ${median}`);
-                }
-            }
-            if (stopped) return;
-            if (self) return;
-            valid_message = valid_regex.test(message) && (parseInt(message) >= min) && (parseInt(message) <= max)
-            if (valid_message) {
-                counter++
-                valid_inputs[uniqueResult ? userstate["display-name"] : counter] = parseInt(message)
-            }
-            document.getElementById("chatOutput").innerHTML += "<span style='color: " + (valid_message ? "green" : "red") + ";'>"+ userstate["display-name"] + ": " + message + "</span><br>";
-        });
-    }
-</script>
+    </script>
 </head>
 <body>
 <div>
