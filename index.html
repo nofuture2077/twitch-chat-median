@@ -9,6 +9,15 @@
         const { Chat } = window.TwitchJs;
         let clientId = 'itiucpl208iwqzl4pfg4hrtcp8l70k';
         var client;
+
+        let appStateData = localStorage.getItem("appstate");
+        let appState = appStateData ? JSON.parse(appStateData) :  {
+            "unique": false,
+            "min": 10,
+            "max": 999,
+            "bot": "",
+            "channel": ""
+        };
     
         function calcMedian(values) {
             values.sort(function(a,b) {
@@ -19,6 +28,28 @@
             let lowMiddle = Math.floor( (values.length - 1) / 2);
             let highMiddle = Math.ceil( (values.length - 1) / 2);
             return ( values[lowMiddle] + values[highMiddle]) / 2;
+        }
+
+        function saveAppState(appState) {
+            localStorage.setItem("appstate", JSON.stringify(appState));
+        }
+
+        function save(key, apKey) {
+            var value = document.getElementById(key).value;
+            appState[apKey] = value;
+            saveAppState(appState);
+        }
+
+        function saveNumber(key, apKey) {
+            var value = document.getElementById(key).value;
+            appState[apKey] = Number(value);
+            saveAppState(appState);
+        }
+
+        function saveChecked(key, apKey) {
+            var value = document.getElementById(key).checked;
+            appState[apKey] = value;
+            saveAppState(appState);
         }
         function connectToChannel() {
             if (client) {
@@ -48,11 +79,33 @@
     
             client = new Chat(config);
 
+            function addMessage(user, channel, msg, valid, displayname, color, system) {
+                const app = document.getElementById("twitchChat");
+
+                let at_bottom = (app.scrollHeight - app.scrollTop - 560) < 44;
+                let div = document.createElement("div");
+                let channelInfo = channel && (channel !== appState.channel) ? ("(" + channel + ") ") : "";
+                div.innerHTML = `${channelInfo}<strong><span style="${color ? ('color: ' + color) : ''}">${displayname ? displayname : user}</span>:</strong> ${msg}`;
+                div.style.cursor = 'pointer';
+                div.className = valid ? 'valid' : 'invalid';
+                if (system) {
+                    div.className += " system";
+                }
+                div.onclick = () => {
+                    checkPlayerName(user);
+                    document.getElementById("checkPlayerContainer").scrollIntoView();
+                }
+                app.appendChild(div);
+                if (at_bottom) {
+                    app.scrollTop = app.scrollHeight;  
+                }
+            }
+
             const run = async () => {
                 client.on("*", (message) => {
                     const time = new Date(message.timestamp).toTimeString();
                     const event = message.event || message.command;
-                    const channel = message.channel;
+                    const channel = message.channel ? message.channel.substr(1) : undefined;
                     let msg = message.message || "";
 
                     if (!message.tags.username || !msg) {
@@ -60,7 +113,7 @@
                     }
                     
                     if (msg === '!startmedian' && (message.tags.mod || message.tags.badges.broadcaster)) {
-                        document.getElementById("chatOutput").innerHTML = '';
+                        document.getElementById("twitchChat").innerHTML = '';
                         valid_inputs = {};
                         stopped = false;
                         counter = 0;
@@ -69,7 +122,7 @@
                         stopped = true;
                         validVotes = Object.values(valid_inputs);
                         median = Math.ceil(calcMedian(validVotes));
-                        document.getElementById("chatOutput").innerHTML += "<br><br><br><b>Median: " + median + "</b>"
+                        addMessage(parts[0], undefined,  "Median: " + median);
                         if (botInput) {
                             client.say(channel, `${validVotes.length} votes cast. Median is: ${median}`);
                         }
@@ -81,18 +134,36 @@
                         counter++
                         valid_inputs[uniqueResult ? message.tags.username : counter] = parseInt(msg)
                     }
-                    document.getElementById("chatOutput").innerHTML += "<span style='color: " + (valid_message ? "green" : "red") + ";'>"+ message.tags.username + ": " + msg + "</span><br>";
+                    addMessage(message.tags.username, channel, msg, valid_message, message.tags.displayName, message.tags.color);
                 });
 
                 await client.connect();
                 await client.join(channelName);
 
-                document.getElementById("chatOutput").innerHTML = channelName + ' Connected'
+                addMessage(parts[0], undefined,  channelName + ' Connected');
             };
 
             run();
         }
     </script>
+    <style>
+        #twitchChat {
+            max-height: 600px;
+            overflow: scroll;
+            padding: 0 5px;
+            margin-top: 10px;
+        }
+        #twitchChat > div {
+            padding: 1px 10px;
+        }
+        body.dark {
+            background-color: #282828;
+            color: #c6c6c6;
+        }
+        .valid {
+            background-color: #0a4d04;
+        }
+    </style>
 </head>
 <body>
 <div>
@@ -103,21 +174,32 @@
 </div>
 <div>
     <label for="UniqueResultInput">Unique value per User (last)</label>
-    <input type="checkbox" id="UniqueResultInput" name="UniqueResultInput" checked="checked">  
+    <input type="checkbox" id="UniqueResultInput" name="UniqueResultInput" checked="checked" onchange="saveChecked('UniqueResultInput', 'unique')"> 
     <br/><br/>
     <label for="channelMinInput">Min:</label>
-    <input type="number" id="channelMinInput" name="channelMinInput" value="10">
+    <input type="number" id="channelMinInput" name="channelMinInput" value="10" onblur="saveNumber('channelMinInput', 'min')">
     <label for="channelMaxInput">Max:</label>
-    <input type="number" id="channelMaxInput" name="channelMaxInput" value="999">
+    <input type="number" id="channelMaxInput" name="channelMaxInput" value="999" onblur="saveNumber('channelMaxInput', 'max')">
     <br/><br/>
     <label for="botInput">BotCredentials (Optional):</label><br/>
-    <input type="text" id="botInput" name="botInput">
+    <input type="text" id="botInput" name="botInput" onblur="save('botInput', 'bot')" size="50">
     <br/><br/>
     <label for="channelNameInput">Channelname:</label>
-    <input type="text" id="channelNameInput" name="channelNameInput">
+    <input type="text" id="channelNameInput" name="channelNameInput" onblur="save('channelNameInput', 'channel')">
     <button onclick="connectToChannel()">Connect</button>
 </div>
 
-<div id="chatOutput"></div>
+<div id="twitchChat"></div>
+
+<script>
+    document.getElementById("channelNameInput").value = appState.channel;
+    document.getElementById("botInput").value = appState.bot;
+    document.getElementById("channelMinInput").value = appState.min;
+    document.getElementById("channelMaxInput").value = appState.max;
+    document.getElementById("UniqueResultInput").checked = appState.unique;
+
+    let dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    document.querySelector("body").className = dark ? "dark" : "";
+</script>
 </body>
 </html>
