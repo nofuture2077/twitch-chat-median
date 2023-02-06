@@ -10,7 +10,7 @@
         let clientId = 'itiucpl208iwqzl4pfg4hrtcp8l70k';
         var client;
 
-        let appStateData = localStorage.getItem("appstate");
+        let appStateData = localStorage.getItem("appstatemedian");
         let appState = appStateData ? JSON.parse(appStateData) :  {
             "unique": false,
             "min": 10,
@@ -31,7 +31,7 @@
         }
 
         function saveAppState(appState) {
-            localStorage.setItem("appstate", JSON.stringify(appState));
+            localStorage.setItem("appstatemedian", JSON.stringify(appState));
         }
 
         function save(key, apKey) {
